@@ -44,8 +44,9 @@
                             <tr>
                                 <td class="text-center">{{ forloop.counter }}</td>
                                 <td>{{ cat.date_created|date:"Y-m-d H:i" }}</td>
-                                <td>{{ cat.name}}</td>
-                                <td>{{cat.sub_categorylist}}</td>
+                                <td>{{ cat.name}} <br>
+                                <small>available books: {{cat.book_count}}</small></td>
+                                <td>{{cat.sub_categories}}</td>
                                 <td>
                                     <p class="m-0 truncate-1">{{ cat.description|safe }}</p>
                                 </td>

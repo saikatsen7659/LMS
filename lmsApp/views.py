@@ -214,7 +214,7 @@ def category(request):
     context = context_data(request)
     context['page'] = 'category'
     context['page_title'] = "Category List"
-    context['category'] = models.Category.objects.filter(delete_flag = 0).all()
+    context['category'] = category_transform_func(models.Category.objects.filter(delete_flag=0))
     return render(request, 'category.html', context)
 
 @login_required
@@ -290,7 +290,7 @@ def sub_category(request):
     context = context_data(request)
     context['page'] = 'sub_category'
     context['page_title'] = "Sub Category List"
-    context['sub_category'] = models.SubCategory.objects.filter(delete_flag = 0).all()
+    context['sub_category'] = sub_category_transform_func(models.SubCategory.objects.filter(delete_flag=0))
     return render(request, 'sub_category.html', context)
 
 @login_required
@@ -366,7 +366,7 @@ def books(request):
     context = context_data(request)
     context['page'] = 'book'
     context['page_title'] = "Book List"
-    context['books'] = models.Books.objects.filter(delete_flag = 0).all()
+    context['books'] = models.Books.objects.filter(delete_flag = 0)
     return render(request, 'books.html', context)
 
 @login_required
@@ -525,7 +525,7 @@ def view_issued_book(request):
     issuedBooks = books.objects.all()
     details = []
     for i in issuedBooks:
-        days = (date.today()-i.issued_date)
+        days = (datetime.datetime.today()- i.issued_date)
         d=days.days
         fine=0
         if d>14:
@@ -608,3 +608,46 @@ def delete_borrow(request, pk = None):
             resp['msg'] = "Deleting Transaction Failed"
 
     return HttpResponse(json.dumps(resp), content_type="application/json")
+
+
+def category_transform_signal(instance):
+    data_dict = dict()
+    book_count_list = [i.books_set.filter(delete_flag=0).count() for i in instance.subcategory_set.filter(delete_flag=0)]
+    
+    data_dict["id"] = instance.id
+    data_dict["pk"] = instance.id
+    data_dict["name"] = instance.name
+    data_dict["description"] = instance.description
+    data_dict["status"] = instance.status
+    data_dict["delete_flag"] = instance.delete_flag
+    data_dict["date_created"] = instance.date_created
+    data_dict["date_added"] = instance.date_added
+    data_dict["book_count"] = sum(book_count_list) if book_count_list else None
+    # data_dict["sub_cat_count"] = instance.subcategory_set.filter(delete_flag=0).count()
+    data_dict["sub_categories"] = ", ".join([i.name for i in instance.subcategory_set.filter(delete_flag=0)])
+    
+    return data_dict
+
+
+def category_transform_func(data):
+    return map(category_transform_signal, data)
+
+
+def sub_category_transform_signal(instance):
+    data_dict = dict()
+    
+    data_dict["id"] = instance.id
+    data_dict["pk"] = instance.id
+    data_dict["name"] = instance.name
+    data_dict["description"] = instance.description
+    data_dict["status"] = instance.status
+    data_dict["delete_flag"] = instance.delete_flag
+    data_dict["date_created"] = instance.date_created
+    data_dict["date_added"] = instance.date_added
+    data_dict["book_count"] = instance.books_set.filter(delete_flag=0).count()
+    
+    return data_dict
+
+
+def sub_category_transform_func(data):
+    return map(sub_category_transform_signal, data)
